@@ -10,4 +10,3 @@ public key in current context:
 ``` 
 kubectl config view --raw -o jsonpath='{.users[?(@.name == "'$(kubectl config current-context)'")].user.client-certificate-data}' | base64 --decode | openssl x509 -text -noout | grep "Subject:"
 ```
-commit test2
