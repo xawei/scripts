@@ -13,5 +13,5 @@ kubectl config view --raw -o jsonpath='{.users[?(@.name == "'$(kubectl config cu
 
 ### 2. check containers
 ```yaml
-kubectl get pod -l app=<deployment-label> -o jsonpath="{.items[0].spec.initContainers[*].name} {.items[0].spec.containers[*].name}"
+kubectl get pod -l app=$(kubectl get deployment <deployment-name> -o jsonpath="{.metadata.labels.app}") -o yaml
 ```
