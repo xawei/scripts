@@ -25,3 +25,16 @@ kubectl get deployment <deployment-name> -o yaml | yq '.spec.template.spec.conta
 ```yaml
 kubectl get pod <pod-name> -o yaml | yq '.spec.containers[] | select(.name == "<container-name>")'
 ```
+
+### 5. get specific parts of every container in a deployment
+for example, container name / image / livenessProbe / readinessProbe
+```yaml
+kubectl get deployment <deployment-name> -o json | jq -r '
+  .spec.template.spec.containers[] | 
+  {
+    name: .name, 
+    image: .image, 
+    livenessProbe: .livenessProbe, 
+    readinessProbe: .readinessProbe
+  }' | yq eval -P -
+```
