@@ -1,4 +1,4 @@
-## KubeConfig
+## kubectl script
 ### 1. view the certificate details
 CA of current cluster
 ```
