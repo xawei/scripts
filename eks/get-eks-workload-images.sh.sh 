@@ -5,9 +5,9 @@ REGION="ap-southeast-1"          # AWS region
 PROFILE="your-profile-name"      # AWS CLI profile
 NAMESPACE="default"              # Namespace to inspect
 
-DEPLOYMENTS=()                   # e.g. ("api" "web"), leave empty for all
-DAEMONSETS=()                    # e.g. ("fluentd"), leave empty for all
-STATEFULSETS=()                  # e.g. ("mysql"), leave empty for all
+DEPLOYMENTS=()                   # e.g. ("api" "web"), leave empty to check all
+DAEMONSETS=()                    # e.g. ("fluentd"), leave empty to check all
+STATEFULSETS=()                  # e.g. ("mysql"), leave empty to check all
 
 TMP_KUBECONFIG="/tmp/tmp_kubeconfig_eks"
 
@@ -34,15 +34,20 @@ for cluster in $clusters; do
 
   # === Deployments ===
   echo ">> Deployments"
-  if [ ${#DEPLOYMENTS[@]} -eq 0 ]; then
-    DEPLOYMENTS=($(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get deployments -o jsonpath='{.items[*].metadata.name}'))
+  local_deployments=("${DEPLOYMENTS[@]}")
+  if [ ${#local_deployments[@]} -eq 0 ]; then
+    local_deployments=($(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get deployments -o jsonpath='{.items[*].metadata.name}'))
   fi
 
-  for deploy in "${DEPLOYMENTS[@]}"; do
-    image=$(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get deployment "$deploy" \
+  for deploy in "${local_deployments[@]}"; do
+    images=$(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get deployment "$deploy" \
       -o jsonpath='{.spec.template.spec.containers[*].image}' 2>/dev/null)
+
     if [ $? -eq 0 ]; then
-      echo "  ✅ Deployment: $deploy - Image(s): $image"
+      echo "  ✅ Deployment: $deploy"
+      for img in $images; do
+        echo "    Image: $img"
+      done
     else
       echo "  ❌ Deployment: $deploy not found."
     fi
@@ -50,15 +55,20 @@ for cluster in $clusters; do
 
   # === DaemonSets ===
   echo ">> DaemonSets"
-  if [ ${#DAEMONSETS[@]} -eq 0 ]; then
-    DAEMONSETS=($(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get daemonsets -o jsonpath='{.items[*].metadata.name}'))
+  local_daemonsets=("${DAEMONSETS[@]}")
+  if [ ${#local_daemonsets[@]} -eq 0 ]; then
+    local_daemonsets=($(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get daemonsets -o jsonpath='{.items[*].metadata.name}'))
   fi
 
-  for ds in "${DAEMONSETS[@]}"; do
-    image=$(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get daemonset "$ds" \
+  for ds in "${local_daemonsets[@]}"; do
+    images=$(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get daemonset "$ds" \
       -o jsonpath='{.spec.template.spec.containers[*].image}' 2>/dev/null)
+
     if [ $? -eq 0 ]; then
-      echo "  ✅ DaemonSet: $ds - Image(s): $image"
+      echo "  ✅ DaemonSet: $ds"
+      for img in $images; do
+        echo "    Image: $img"
+      done
     else
       echo "  ❌ DaemonSet: $ds not found."
     fi
@@ -66,15 +76,20 @@ for cluster in $clusters; do
 
   # === StatefulSets ===
   echo ">> StatefulSets"
-  if [ ${#STATEFULSETS[@]} -eq 0 ]; then
-    STATEFULSETS=($(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get statefulsets -o jsonpath='{.items[*].metadata.name}'))
+  local_statefulsets=("${STATEFULSETS[@]}")
+  if [ ${#local_statefulsets[@]} -eq 0 ]; then
+    local_statefulsets=($(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get statefulsets -o jsonpath='{.items[*].metadata.name}'))
   fi
 
-  for sts in "${STATEFULSETS[@]}"; do
-    image=$(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get statefulset "$sts" \
+  for sts in "${local_statefulsets[@]}"; do
+    images=$(kubectl --kubeconfig "$TMP_KUBECONFIG" -n "$NAMESPACE" get statefulset "$sts" \
       -o jsonpath='{.spec.template.spec.containers[*].image}' 2>/dev/null)
+
     if [ $? -eq 0 ]; then
-      echo "  ✅ StatefulSet: $sts - Image(s): $image"
+      echo "  ✅ StatefulSet: $sts"
+      for img in $images; do
+        echo "    Image: $img"
+      done
     else
       echo "  ❌ StatefulSet: $sts not found."
     fi
