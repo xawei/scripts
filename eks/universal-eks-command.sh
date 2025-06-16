@@ -5,10 +5,15 @@ REGION="ap-southeast-1"          # AWS region
 PROFILES=("your-profile-name")   # AWS CLI profiles array, e.g. ("profile1" "profile2" "profile3")
 
 # Custom command to execute on each cluster
-# Use {KUBECONFIG} placeholder for the temporary kubeconfig path
-# Use {CLUSTER} placeholder for the current cluster name
-# Use {PROFILE} placeholder for the current AWS profile
-CUSTOM_COMMAND="kubectl --kubeconfig {KUBECONFIG} get nodes"
+# The kubeconfig will be automatically set for each cluster
+# You can use {CLUSTER} placeholder for the current cluster name
+# You can use {PROFILE} placeholder for the current AWS profile
+# Examples:
+#   "kubectl get nodes"
+#   "helm list --all-namespaces"
+#   "kubectl get pods -n kube-system"
+#   "echo 'Checking cluster: {CLUSTER} in profile: {PROFILE}' && kubectl get nodes"
+CUSTOM_COMMAND="kubectl get nodes"
 
 # Optional: Specific clusters to target (leave empty to target all clusters)
 TARGET_CLUSTERS=()              # e.g. ("cluster1" "cluster2"), leave empty to check all
@@ -23,17 +28,17 @@ execute_custom_command() {
     local cluster="$2"
     local profile="$3"
     
-    # Replace placeholders in the command
+    # Replace placeholders in the command (no need for KUBECONFIG placeholder anymore)
     local cmd="${CUSTOM_COMMAND}"
-    cmd="${cmd//\{KUBECONFIG\}/$kubeconfig}"
     cmd="${cmd//\{CLUSTER\}/$cluster}"
     cmd="${cmd//\{PROFILE\}/$profile}"
     
     echo "  Command: $cmd"
     echo "  Output:"
     
-    # Execute the command
-    eval "$cmd"
+    # Set KUBECONFIG environment variable and execute the command
+    # This way kubectl, helm, and other tools will automatically use the correct config
+    KUBECONFIG="$kubeconfig" eval "$cmd"
     local exit_code=$?
     
     if [ $exit_code -ne 0 ]; then
