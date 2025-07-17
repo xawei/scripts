@@ -33,19 +33,19 @@ else
     for workload in "${WORKLOAD_ARRAY[@]}"; do
         case $workload in
             "deployment"|"deploy")
-                kubectl get pods -n $NAMESPACE -l app.kubernetes.io/managed-by=deployment -o jsonpath='{range .items[*]}{.spec.nodeName}{"\n"}{end}' 2>/dev/null
+                kubectl get pods -n $NAMESPACE -o jsonpath='{range .items[?(@.metadata.ownerReferences[0].kind=="ReplicaSet")]}{.spec.nodeName}{"\n"}{end}' 2>/dev/null
                 ;;
             "statefulset"|"sts")
-                kubectl get pods -n $NAMESPACE -l app.kubernetes.io/managed-by=statefulset -o jsonpath='{range .items[*]}{.spec.nodeName}{"\n"}{end}' 2>/dev/null
+                kubectl get pods -n $NAMESPACE -o jsonpath='{range .items[?(@.metadata.ownerReferences[0].kind=="StatefulSet")]}{.spec.nodeName}{"\n"}{end}' 2>/dev/null
                 ;;
             "daemonset"|"ds")
-                kubectl get pods -n $NAMESPACE -l app.kubernetes.io/managed-by=daemonset -o jsonpath='{range .items[*]}{.spec.nodeName}{"\n"}{end}' 2>/dev/null
+                kubectl get pods -n $NAMESPACE -o jsonpath='{range .items[?(@.metadata.ownerReferences[0].kind=="DaemonSet")]}{.spec.nodeName}{"\n"}{end}' 2>/dev/null
                 ;;
             "job")
-                kubectl get pods -n $NAMESPACE -l app.kubernetes.io/managed-by=job -o jsonpath='{range .items[*]}{.spec.nodeName}{"\n"}{end}' 2>/dev/null
+                kubectl get pods -n $NAMESPACE -o jsonpath='{range .items[?(@.metadata.ownerReferences[0].kind=="Job")]}{.spec.nodeName}{"\n"}{end}' 2>/dev/null
                 ;;
             "cronjob"|"cj")
-                kubectl get pods -n $NAMESPACE -l app.kubernetes.io/managed-by=cronjob -o jsonpath='{range .items[*]}{.spec.nodeName}{"\n"}{end}' 2>/dev/null
+                kubectl get pods -n $NAMESPACE -o jsonpath='{range .items[?(@.metadata.ownerReferences[0].kind=="Job")]}{.spec.nodeName}{"\n"}{end}' 2>/dev/null
                 ;;
             *)
                 echo "Unknown workload type: $workload" >&2
