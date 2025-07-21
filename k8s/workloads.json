@@ -1,0 +1,9 @@
+{
+  "deploy": [
+    { "name": "coredns", "namespace": "kube-system" },
+    { "name": "crossplane", "namespace": "default" }
+  ],
+  "sts": [
+    { "name": "argocd-application-controller", "namespace": "argocd" }
+  ]
+} 
