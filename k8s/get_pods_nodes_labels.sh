@@ -32,11 +32,15 @@ echo "NAMESPACE|WORKLOAD|POD|NODE|NODE_LABELS" > "$TMP_ROWS"
 jq -c '.deploy[]?' "$WORKLOADS_JSON" | while read -r item; do
   name=$(echo "$item" | jq -r '.name')
   ns=$(echo "$item" | jq -r '.namespace')
+  echo "Checking deployment: $name in namespace: $ns" >&2
   pods=$(kubectl get pods -n "$ns" -o json | jq -r \
     --arg name "$name" '
       .items[] | select(.metadata.ownerReferences[]? | .kind=="ReplicaSet") |
       select(.metadata.ownerReferences[0].name | startswith($name)) |
       .metadata.name + "|" + .spec.nodeName')
+  if [ -z "$pods" ]; then
+    echo "  No pods found for deployment: $name in namespace: $ns" >&2
+  fi
   while IFS='|' read -r pod node; do
     [ -z "$pod" ] && continue
     label_values=""
@@ -53,11 +57,15 @@ done
 jq -c '.sts[]?' "$WORKLOADS_JSON" | while read -r item; do
   name=$(echo "$item" | jq -r '.name')
   ns=$(echo "$item" | jq -r '.namespace')
+  echo "Checking statefulset: $name in namespace: $ns" >&2
   pods=$(kubectl get pods -n "$ns" -o json | jq -r \
     --arg name "$name" '
       .items[] | select(.metadata.ownerReferences[]? | .kind=="StatefulSet") |
       select(.metadata.ownerReferences[0].name==$name) |
       .metadata.name + "|" + .spec.nodeName')
+  if [ -z "$pods" ]; then
+    echo "  No pods found for statefulset: $name in namespace: $ns" >&2
+  fi
   while IFS='|' read -r pod node; do
     [ -z "$pod" ] && continue
     label_values=""
@@ -82,6 +90,9 @@ while IFS='|' read -r ns workload pod node labels; do
   (( ${#node} > max_node )) && max_node=${#node}
   (( ${#labels} > max_labels )) && max_labels=${#labels}
 done < "$TMP_ROWS"
+
+# Print an empty line before the summary header
+printf "\n"
 
 # Print all rows with dynamic widths
 fmt="%-${max_ns}s  %-${max_workload}s  %-${max_pod}s  %-${max_node}s  %-${max_labels}s\n"
