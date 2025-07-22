@@ -41,17 +41,18 @@ process_workload(){
 log "✅ Starting resource summary analysis"
 
 # Loop through workloads
-for kind in deployments statefulsets; do
-  jq -c ".${kind}[]" "$file" | while read -r obj; do
+for kind_pair in "deploy deployment" "sts statefulset"; do
+  read -r json_key workload_kind <<< "$kind_pair"
+  jq -c ".${json_key}[]" "$file" | while read -r obj; do
     name=$(echo "$obj" | jq -r '.name')
     ns=$(echo "$obj" | jq -r '.namespace')
-    process_workload "${kind%?}" "$name" "$ns"
+    process_workload "$workload_kind" "$name" "$ns"
   done
 done
 
 # Add DaemonSets
 log "🔁 Including DaemonSets in relevant namespaces"
-jq -r '.deployments[].namespace, .statefulsets[].namespace' "$file" | sort -u | while read -r ns; do
+jq -r '.deploy[].namespace, .sts[].namespace' "$file" | sort -u | while read -r ns; do
   kubectl -n "$ns" get daemonsets -o name | while read -r ds; do
     name=${ds#daemonset.apps/}
     process_workload daemonset "$name" "$ns"
