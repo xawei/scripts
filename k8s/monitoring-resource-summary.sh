@@ -27,11 +27,12 @@ to_mcores(){
 
 to_bytes(){ 
   echo "$1" | awk '
-    /Ki$/{gsub(/Ki$/,""); print int($1*1024)} 
-    /Mi$/{gsub(/Mi$/,""); print int($1*1024*1024)}
-    /Gi$/{gsub(/Gi$/,""); print int($1*1024*1024*1024)}
-    /^[0-9]+$/{print $1}
-    /^$/{print 0}
+    /Ki$/{gsub(/Ki$/,""); print int($1*1024); exit} 
+    /Mi$/{gsub(/Mi$/,""); print int($1*1024*1024); exit}
+    /Gi$/{gsub(/Gi$/,""); print int($1*1024*1024*1024); exit}
+    /^[0-9]+$/{print $1; exit}
+    /^$/{print 0; exit}
+    {print 0; exit}
   '
 }
 
@@ -75,7 +76,7 @@ process_workload(){
     w_mem=$((w_mem+mb))
   done < <(echo "$podspec" | jq -c '.containers[]?' 2>/dev/null || echo "")
   
-  echo "- ${kind}/${name} => CPU ${w_cpu}m | MEM ${w_mem}Mi"
+  echo "- ${kind}/${name} => CPU ${w_cpu}m | MEM ${w_mem}Mi" >&2
   
   # Return the values to be captured by caller
   echo "$w_cpu $w_mem"
