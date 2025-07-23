@@ -88,11 +88,12 @@ fi
 TOTAL_CPU_PER_NODE_MCORES=0
 TOTAL_MEM_PER_NODE_BYTES=0
 
-echo ""
-echo "🔍 DaemonSet Analysis (Per Node):"
-echo "================================="
-printf "%-30s %-20s %-15s %-15s\n" "NAME" "NAMESPACE" "CPU_REQUEST" "MEM_REQUEST"
-echo "$(printf '%.0s-' {1..80})"
+# First pass: collect data and calculate column widths
+declare -a ds_data=()
+max_name_width=4  # minimum width for "NAME"
+max_namespace_width=9  # minimum width for "NAMESPACE"
+max_cpu_width=11  # minimum width for "CPU_REQUEST"
+max_mem_width=11  # minimum width for "MEM_REQUEST"
 
 # Use temp file to store per-node totals (avoid subshell variable issues)
 TEMP_TOTALS=$(mktemp)
@@ -129,17 +130,56 @@ while IFS= read -r ds; do
   new_total_mem=$((curr_total_mem + ds_mem_bytes))
   echo "$new_total_cpu $new_total_mem" > "$TEMP_TOTALS"
   
-  # Format output
+  # Format resource values
   cpu_req_formatted=$(format_cpu "$ds_cpu_mcores")
   mem_req_formatted=$(format_memory "$ds_mem_bytes")
   
-  printf "%-30s %-20s %-15s %-15s\n" \
-    "$name" "$namespace" "$cpu_req_formatted" "$mem_req_formatted"
+  # Truncate long names/namespaces with ellipsis
+  display_name="$name"
+  display_namespace="$namespace"
+  
+  if [[ ${#name} -gt 50 ]]; then
+    display_name="${name:0:47}..."
+  fi
+  
+  if [[ ${#namespace} -gt 35 ]]; then
+    display_namespace="${namespace:0:32}..."
+  fi
+  
+  # Store data for second pass
+  ds_data+=("$display_name|$display_namespace|$cpu_req_formatted|$mem_req_formatted")
+  
+  # Update column widths
+  [[ ${#display_name} -gt $max_name_width ]] && max_name_width=${#display_name}
+  [[ ${#display_namespace} -gt $max_namespace_width ]] && max_namespace_width=${#display_namespace}
+  [[ ${#cpu_req_formatted} -gt $max_cpu_width ]] && max_cpu_width=${#cpu_req_formatted}
+  [[ ${#mem_req_formatted} -gt $max_mem_width ]] && max_mem_width=${#mem_req_formatted}
 done < <(echo "$DAEMONSETS" | jq -c '.items[]')
 
 # Read final per-node totals from temp file
 read -r TOTAL_CPU_PER_NODE_MCORES TOTAL_MEM_PER_NODE_BYTES < "$TEMP_TOTALS"
 rm -f "$TEMP_TOTALS"
+
+# Second pass: display the formatted table
+echo ""
+echo "🔍 DaemonSet Analysis (Per Node):"
+echo "================================="
+
+# Create format string
+format_str="%-${max_name_width}s %-${max_namespace_width}s %-${max_cpu_width}s %-${max_mem_width}s\n"
+
+# Print header
+printf "$format_str" "NAME" "NAMESPACE" "CPU_REQUEST" "MEM_REQUEST"
+
+# Print separator line
+total_width=$((max_name_width + max_namespace_width + max_cpu_width + max_mem_width + 3))
+echo "$(printf '%.0s-' $(seq 1 $total_width))"
+
+# Print data
+for row in "${ds_data[@]}"; do
+  IFS='|' read -r name namespace cpu mem <<< "$row"
+  printf "$format_str" "$name" "$namespace" "$cpu" "$mem"
+done
 
 echo ""
 echo "📊 Summary:"
