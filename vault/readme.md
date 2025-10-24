@@ -35,6 +35,21 @@ make sure the token is valid
 ```
 test -n "$TARGET_JWT" && echo "✅ Got app token" || echo "❌ No token"
 ```
+if you don't have permission to create serviceaccount/token, you can get a projected token from a running pod.
+
+B) Read the pod’s projected token
+
+```
+export POD_NS="test"
+export POD_NAME="test-1234567890"
+export TOKEN_FILE="/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+# Read the token from the pod
+export TARGET_JWT=$(kubectl -n $POD_NS exec $POD_NAME -- cat $TOKEN_FILE)
+echo "$TARGET_JWT" | head -c 40 && echo "..."
+```
+
+
 
 ✅ 3) Now re-run the TokenReview request (the API check that Vault also performs)
 
