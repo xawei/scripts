@@ -38,3 +38,17 @@ kubectl get deployment <deployment-name> -o json | jq -r '
     readinessProbe: .readinessProbe
   }' | yq eval -P -
 ```
+
+### 6. check certificates in secrets
+```bash
+# current namespace / specific namespace / all namespaces / full detail / only expiring soon
+./check-certs-in-secret.sh                # current namespace
+./check-certs-in-secret.sh <namespace>    # specific namespace
+./check-certs-in-secret.sh -A             # all namespaces
+./check-certs-in-secret.sh -d             # also print full cert details (openssl x509 -text)
+./check-certs-in-secret.sh -e [days]      # only expired / expiring within N days (default 30)
+```
+Checks any secret key ending in `.crt` / `.pem` (`kubernetes.io/tls` secrets with `tls.crt`, plus
+CA bundles like `ca.crt`, `root-cert.pem`, ...). Prints subject / issuer / validity / days left
+(color-coded) / SANs in a sorted table, with an attention list for certs that are expired or
+expiring soon. Handles multi-cert chains and empty values.
